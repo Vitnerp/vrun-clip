@@ -1,0 +1,78 @@
+# Builds the Windows installer and publishes a GitHub Release.
+#
+# How to release:
+#   1. Bump the version in src-tauri/tauri.conf.json (and package.json / Cargo.toml)
+#   2. git commit -am "v0.2.0" && git tag v0.2.0 && git push --follow-tags
+# The release appears under GitHub → Releases with vrun.clip_<version>_x64-setup.exe.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          # Later, for cross-platform builds:
+          # - platform: macos-latest
+          #   args: "--target universal-apple-darwin"
+          # - platform: ubuntu-22.04
+          #   args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Check updater key is configured
+        shell: pwsh
+        env:
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          if ((Get-Content src-tauri/tauri.conf.json -Raw) -match 'REPLACE_WITH') { throw "Set plugins.updater.pubkey in tauri.conf.json (see README → Auto-update)" }
+          if ($env:HAS_KEY -ne 'true') { throw "Missing GitHub secret TAURI_SIGNING_PRIVATE_KEY (see README → Auto-update)" }
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Only needed once auto-update is enabled (see README → Auto-update).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "vrun.clip ${{ github.ref_name }}"
+          releaseBody: |
+            ### Install
+            Download **vrun.clip_*_x64-setup.exe** below and run it. No administrator rights needed.
+            After install, press **Ctrl+Alt+V** anywhere.
+
+            If Windows SmartScreen warns about an unknown publisher, click **More info → Run anyway**.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

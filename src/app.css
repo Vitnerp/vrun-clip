@@ -1,0 +1,102 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1b1b1f;
+  --muted: #6b6b76;
+  --border: #e6e6ea;
+  --border-strong: #c9c9d1;
+  --hover: #f3f3f6;
+  --selected: #e4ecff;
+  --accent: #2f6bff;
+  --danger: #d33a3a;
+  --warn-bg: #fff4d6;
+  --warn-fg: #7a5600;
+  --overlay: rgba(255, 255, 255, 0.7);
+  --input-bg: #f6f6f8;
+  --checker: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 0 0 / 12px 12px;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1f23;
+    --fg: #ececf1;
+    --muted: #9a9aa6;
+    --border: #33333a;
+    --border-strong: #4a4a54;
+    --hover: #2a2a30;
+    --selected: #2c3a5c;
+    --accent: #6f9bff;
+    --danger: #ff7070;
+    --warn-bg: #3a3218;
+    --warn-fg: #f3d27a;
+    --overlay: rgba(20, 20, 24, 0.7);
+    --input-bg: #28282e;
+    --checker: repeating-conic-gradient(#2a2a2f 0 25%, #333339 0 50%) 0 0 / 12px 12px;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-root { display: contents; }
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--border-strong); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.icon {
+  background: transparent;
+  border: 0;
+  padding: 5px;
+  display: inline-flex;
+  color: var(--muted);
+  border-radius: 6px;
+}
+button.icon:hover { background: var(--hover); color: var(--fg); }
+button.icon.small { padding: 3px; }
+
+input, textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  user-select: text;
+}
+input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--fg);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-track { background: transparent; }

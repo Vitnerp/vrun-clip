@@ -1,0 +1,84 @@
+# vrun.clip
+
+Fast, searchable clipboard history for Windows. Press **Ctrl+Alt+V** anywhere, type a few letters, hit **Enter** and it is pasted.
+
+- Remembers text, rich text (HTML/RTF), images and screenshots (4K too), and files copied in Explorer
+- Instant full-text search: substring, case- and diacritics-insensitive (`zlutou` finds `žluťoučký`)
+- Never blocks other apps: the clipboard is held for milliseconds, heavy work happens in the background (the Snipping Tool problem some clipboard managers have)
+- Skips content that apps mark as private (password managers) plus a configurable ignore list
+- Lives in the tray, starts with Windows, 2.4 MB installer, no admin rights needed
+- Everything stays on your computer (`%LOCALAPPDATA%\com.vrun.clip`)
+
+## Install
+
+Download `vrun.clip_<version>_x64-setup.exe` from the [Releases](../../releases) page and run it.
+
+> Windows SmartScreen may say *"Windows protected your PC"* because the installer is not code-signed yet.
+> Click **More info → Run anyway**.
+
+## Use
+
+| Key | Action |
+| --- | --- |
+| `Ctrl+Alt+V` | Open / close the popup (change it in Settings) |
+| type | Search |
+| `↑` `↓` `PgUp` `PgDn` | Move |
+| `Enter` / double-click | Paste into the app you were in |
+| `Shift+Enter` | Paste as plain text |
+| `Ctrl+Enter` / `Ctrl+C` | Copy only (don't paste) |
+| `Ctrl+1` … `Ctrl+9` | Paste item 1–9 |
+| `Ctrl+P` | Pin / unpin (pinned items are never deleted) |
+| `Del` | Delete item |
+| `Ctrl+,` | Settings |
+| `Esc` | Clear search, then close |
+
+The tray icon menu has *Pause recording*, *Start with Windows*, *Settings* and *Quit*.
+
+> Pasting into apps that run **as administrator** only works when vrun.clip also runs as administrator (a Windows security rule). The item is still copied, so you can press Ctrl+V yourself.
+
+## Develop
+
+Requirements: [Rust](https://rustup.rs), Node.js 22+, pnpm, and on Windows the Visual Studio C++ Build Tools (WebView2 ships with Windows 11).
+
+```powershell
+pnpm install
+pnpm tauri dev          # run with hot reload
+pnpm tauri build        # installer in src-tauri/target/release/bundle/nsis/
+cd src-tauri; cargo test                                  # unit tests
+cd src-tauri; cargo test -- --ignored clipboard_roundtrip # touches the real clipboard
+```
+
+Project layout and design decisions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Release
+
+GitHub Actions builds and publishes releases automatically:
+
+1. Bump `version` in `src-tauri/tauri.conf.json` (keep `package.json` and `src-tauri/Cargo.toml` in sync).
+2. Commit, then tag and push:
+   ```powershell
+   git tag v0.2.0
+   git push --follow-tags
+   ```
+3. The **Release** workflow builds `vrun.clip_0.2.0_x64-setup.exe` and attaches it to a new GitHub Release.
+
+### Auto-update
+
+The app checks `https://github.com/Vitnerp/vrun-clip/releases/latest/download/latest.json` 20 s after start and then every 6 hours. It downloads updates in the background and offers **Restart to update** in the popup, the tray menu and Settings. Each update is verified against the public key in `tauri.conf.json`, so only builds signed with the project's private key are accepted.
+
+One-time key setup (the maintainer does this; the private key never goes into the repo):
+
+1. `pnpm tauri signer generate -w "$HOME\.tauri\vrun-clip.key"` and choose a password.
+2. Back up `vrun-clip.key` and the password (password manager). **If they are lost, installed copies can never be updated again.**
+3. Upload them as GitHub Actions secrets:
+   ```powershell
+   gh secret set TAURI_SIGNING_PRIVATE_KEY --repo Vitnerp/vrun-clip --body (Get-Content -Raw "$HOME\.tauri\vrun-clip.key")
+   gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo Vitnerp/vrun-clip
+   ```
+4. Put the contents of `vrun-clip.key.pub` into `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
+
+Local `pnpm tauri build` then needs the key in the environment: `$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content -Raw "$HOME\.tauri\vrun-clip.key"` (plus `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`).
+
+### Code signing (removing the SmartScreen warning)
+
+Planned via the free SignPath Foundation program for open-source projects. See [docs/SIGNING.md](docs/SIGNING.md).
