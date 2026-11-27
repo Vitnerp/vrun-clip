@@ -67,10 +67,9 @@ osascript -e 'set the clipboard to (POSIX file "/etc/hosts")'
 wait_for "select count(*) from items where kind='files' and text like '%hosts%'" >/dev/null || fail "file clip not recorded"
 echo "ok: file recorded"
 
-# 4. Search index works on the real data
-n=$(query "select count(*) from items_fts where items_fts match '\"zlutoucky\"'")
-[ "$n" = "1" ] || fail "full-text search did not find the text clip (got '$n')"
-echo "ok: search finds it"
+# Search is covered by the Rust unit tests (`cargo test` on macOS). It can't be
+# checked here: the system sqlite3 CLI is older than the app's bundled SQLite and
+# does not know the `trigram remove_diacritics` tokenizer.
 
 kill -0 $PID 2>/dev/null || fail "app crashed during the test"
 echo "--- items"; query "select id, kind, preview, source_app from items"
