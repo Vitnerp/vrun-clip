@@ -58,27 +58,53 @@ fn t_file_url() -> &'static NSPasteboardType {
     unsafe { NSPasteboardTypeFileURL }
 }
 
+/// How often a change with no usable data yet is re-read (4 × 250 ms).
+/// Some writers (Finder, AppleScript) provide standard types lazily.
+const RETRIES: u32 = 4;
+
+enum Read {
+    Clip(CapturedClip),
+    /// Deliberately ignored (private content or our own write).
+    Skip,
+    /// Nothing usable (yet); carries the type names for diagnostics.
+    Empty(Vec<String>),
+}
+
 pub fn start_watcher(config: Arc<WatchConfig>, on_clip: impl Fn(CapturedClip) + Send + 'static) {
     std::thread::Builder::new()
         .name("clipboard-listener".into())
         .spawn(move || {
             let mut last = NSPasteboard::generalPasteboard().changeCount();
+            let mut attempts_left = 0u32;
             loop {
                 std::thread::sleep(POLL);
                 autoreleasepool(|_| {
                     let pb = NSPasteboard::generalPasteboard();
                     let count = pb.changeCount();
-                    if count == last {
+                    if count != last {
+                        last = count;
+                        attempts_left = RETRIES;
+                    }
+                    if attempts_left == 0 {
                         return;
                     }
-                    last = count;
+                    attempts_left -= 1;
                     if config.paused.load(Ordering::Relaxed) {
+                        attempts_left = 0;
                         return;
                     }
                     let max = config.max_bytes.load(Ordering::Relaxed);
-                    if let Some(mut clip) = read_clipboard(&pb, max) {
-                        clip.source_app = frontmost_app_name();
-                        on_clip(clip);
+                    match read_clipboard(&pb, max) {
+                        Read::Clip(mut clip) => {
+                            attempts_left = 0;
+                            clip.source_app = frontmost_app_name();
+                            on_clip(clip);
+                        }
+                        Read::Skip => attempts_left = 0,
+                        Read::Empty(types) if attempts_left == 0 && !types.is_empty() => {
+                            log::info!("clipboard change without usable data, types: {types:?}");
+                        }
+                        Read::Empty(_) => {}
                     }
                 });
             }
@@ -95,10 +121,10 @@ fn data(pb: &NSPasteboard, t: &NSPasteboardType, max: usize) -> Option<Vec<u8>> 
     (d.length() <= max).then(|| d.to_vec())
 }
 
-fn read_clipboard(pb: &NSPasteboard, max: usize) -> Option<CapturedClip> {
+fn read_clipboard(pb: &NSPasteboard, max: usize) -> Read {
     let types = type_names(pb);
     if types.iter().any(|t| SKIP_TYPES.contains(&t.as_str())) {
-        return None;
+        return Read::Skip;
     }
     let has = |t: &NSPasteboardType| types.iter().any(|x| *x == t.to_string());
     let mut clip = CapturedClip::default();
@@ -126,18 +152,30 @@ fn read_clipboard(pb: &NSPasteboard, max: usize) -> Option<CapturedClip> {
             None
         };
     }
-    (clip.files.is_some() || clip.text.is_some() || clip.image.is_some()).then_some(clip)
+    if clip.files.is_some() || clip.text.is_some() || clip.image.is_some() {
+        Read::Clip(clip)
+    } else {
+        Read::Empty(types)
+    }
+}
+
+fn url_to_path(url: &NSString) -> Option<String> {
+    NSURL::URLWithString(url)?.path().map(|p| p.to_string())
 }
 
 fn read_files(pb: &NSPasteboard) -> Option<Vec<String>> {
-    let items = pb.pasteboardItems()?;
-    let files: Vec<String> = items
-        .iter()
-        .filter_map(|item| item.stringForType(t_file_url()))
-        .filter_map(|url| NSURL::URLWithString(&url))
-        .filter_map(|url| url.path())
-        .map(|p| p.to_string())
-        .collect();
+    let mut files: Vec<String> = pb
+        .pasteboardItems()
+        .map(|items| {
+            items.iter().filter_map(|item| item.stringForType(t_file_url())).filter_map(|u| url_to_path(&u)).collect()
+        })
+        .unwrap_or_default();
+    // Fallback: ask the pasteboard itself (uses the first item / conversions).
+    if files.is_empty()
+        && let Some(path) = pb.stringForType(t_file_url()).and_then(|u| url_to_path(&u))
+    {
+        files.push(path);
+    }
     (!files.is_empty()).then_some(files)
 }
 
@@ -321,7 +359,7 @@ mod tests {
         assert!(types.iter().any(|t| t == INTERNAL_TYPE), "own writes are marked: {types:?}");
         assert_eq!(pb().stringForType(t_string()).unwrap().to_string(), "Příliš žluťoučký kůň");
         assert_eq!(data(&pb(), t_html(), usize::MAX).unwrap(), b"<b>bold</b>");
-        assert!(read_clipboard(&pb(), usize::MAX).is_none(), "listener skips our own writes");
+        assert!(matches!(read_clipboard(&pb(), usize::MAX), Read::Skip), "listener skips our own writes");
 
         // Plain mode drops HTML.
         write_clipboard(

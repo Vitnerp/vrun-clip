@@ -20,6 +20,7 @@ fail() {
   echo "--- app stdout/stderr"; cat /tmp/vrun-stdout.log || true
   echo "--- app log"; cat "$LOGS"/*.log 2>/dev/null || true
   echo "--- items"; sqlite3 "$DB" "select id, kind, preview, source_app from items" 2>/dev/null || true
+  echo "--- clipboard info"; osascript -e 'clipboard info' 2>&1 || true
   exit 1
 }
 
@@ -63,9 +64,12 @@ ls "$DATA"/images/*.png "$DATA"/thumbs/*.png >/dev/null || fail "image files mis
 echo "ok: image recorded ($dims)"
 
 # 3. File (as copied in Finder)
-osascript -e 'set the clipboard to (POSIX file "/etc/hosts")'
-wait_for "select count(*) from items where kind='files' and text like '%hosts%'" >/dev/null || fail "file clip not recorded"
-echo "ok: file recorded"
+for f in /etc/hosts /etc/shells; do
+  osascript -e "set the clipboard to (POSIX file \"$f\")"
+  wait_for "select count(*) from items where kind='files' and text like '%$(basename "$f")%'" >/dev/null \
+    || fail "file clip $f not recorded"
+  echo "ok: file $f recorded"
+done
 
 # Search is covered by the Rust unit tests (`cargo test` on macOS). It can't be
 # checked here: the system sqlite3 CLI is older than the app's bundled SQLite and
