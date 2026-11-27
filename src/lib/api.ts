@@ -98,6 +98,10 @@ export function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
+export const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.userAgent);
+/** Label for the primary modifier: "⌘" on macOS, "Ctrl+" elsewhere. */
+export const mod = isMac ? "⌘" : "Ctrl+";
+
 /** Turns a keydown event into a shortcut string like "Ctrl+Shift+V". */
 export function shortcutFromEvent(e: KeyboardEvent): string | null {
   const modifierCodes = ["Control", "Alt", "Shift", "Meta", "OS", "AltGraph"];
@@ -106,7 +110,7 @@ export function shortcutFromEvent(e: KeyboardEvent): string | null {
   if (e.ctrlKey) mods.push("Ctrl");
   if (e.altKey) mods.push("Alt");
   if (e.shiftKey) mods.push("Shift");
-  if (e.metaKey) mods.push("Super");
+  if (e.metaKey) mods.push(isMac ? "Cmd" : "Super");
   if (mods.length === 0) return null;
   let key = e.code;
   if (/^Key[A-Z]$/.test(key)) key = key.slice(3);

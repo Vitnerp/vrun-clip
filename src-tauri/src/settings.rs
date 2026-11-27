@@ -6,7 +6,11 @@ use std::path::{Path, PathBuf};
 /// Bump when a migration in `Settings::migrate` is added.
 const SETTINGS_VERSION: u32 = 2;
 const OLD_DEFAULT_HOTKEY: &str = "Ctrl+Alt+V";
-const DEFAULT_HOTKEY: &str = "Ctrl+Shift+V";
+
+/// Ctrl+Shift+V on Windows/Linux, Cmd+Shift+V on macOS.
+pub fn default_hotkey() -> &'static str {
+    if cfg!(target_os = "macos") { "Cmd+Shift+V" } else { "Ctrl+Shift+V" }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -36,7 +40,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             version: SETTINGS_VERSION,
-            hotkey: DEFAULT_HOTKEY.into(),
+            hotkey: default_hotkey().into(),
             max_items: 5000,
             max_image_mb: 2048,
             max_item_mb: 64,
@@ -47,6 +51,10 @@ impl Default for Settings {
                 "KeePassXC.exe".into(),
                 "1Password.exe".into(),
                 "Bitwarden.exe".into(),
+                // macOS executable names
+                "KeePassXC".into(),
+                "1Password".into(),
+                "Bitwarden".into(),
             ],
             welcome_done: false,
         }
@@ -81,7 +89,7 @@ impl Settings {
         // v2: default shortcut changed from Ctrl+Alt+V to Ctrl+Shift+V.
         // Only users still on the old default are moved.
         if self.version < 2 && self.hotkey.eq_ignore_ascii_case(OLD_DEFAULT_HOTKEY) {
-            self.hotkey = DEFAULT_HOTKEY.into();
+            self.hotkey = default_hotkey().into();
         }
         self.version = SETTINGS_VERSION;
         true
@@ -134,11 +142,11 @@ mod tests {
         std::fs::write(Settings::file(&d), r#"{"hotkey":"Ctrl+Alt+V","maxItems":123}"#).unwrap();
         let (s, existed) = Settings::load(&d);
         assert!(existed);
-        assert_eq!(s.hotkey, "Ctrl+Shift+V");
+        assert_eq!(s.hotkey, default_hotkey());
         assert_eq!(s.max_items, 123, "other values kept");
         assert_eq!(s.version, SETTINGS_VERSION);
         let saved = std::fs::read_to_string(Settings::file(&d)).unwrap();
-        assert!(saved.contains("Ctrl+Shift+V"));
+        assert!(saved.contains(default_hotkey()));
         let _ = std::fs::remove_dir_all(d);
     }
 
@@ -155,13 +163,13 @@ mod tests {
         let d = dir();
         let (s, existed) = Settings::load(&d);
         assert!(!existed);
-        assert_eq!(s.hotkey, "Ctrl+Shift+V");
+        assert_eq!(s.hotkey, default_hotkey());
         let _ = std::fs::remove_dir_all(d);
     }
 
     #[test]
     fn hotkeys_parse() {
-        for k in ["Ctrl+Shift+V", "Ctrl+Alt+V", "Ctrl+Backquote"] {
+        for k in ["Ctrl+Shift+V", "Ctrl+Alt+V", "Ctrl+Backquote", "Cmd+Shift+V", "Super+Shift+V"] {
             assert!(k.parse::<tauri_plugin_global_shortcut::Shortcut>().is_ok(), "{k}");
         }
     }

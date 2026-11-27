@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
-  import { api, formatBytes, shortcutFromEvent, type SettingsView, type UpdateStatus } from "./api";
+  import { api, formatBytes, isMac, shortcutFromEvent, type SettingsView, type UpdateStatus } from "./api";
   import Icon from "./Icon.svelte";
 
   let { onclose, onchange }: { onclose: () => void; onchange: (v: SettingsView) => void } = $props();
@@ -114,8 +114,8 @@
 
         <label class="row">
           <div class="label">
-            <strong>Start with Windows</strong>
-            <span>Runs quietly in the tray.</span>
+            <strong>{isMac ? "Start at login" : "Start with Windows"}</strong>
+            <span>Runs quietly in the {isMac ? "menu bar" : "tray"}.</span>
           </div>
           <input type="checkbox" class="switch" bind:checked={view.settings.autostart} onchange={save} />
         </label>

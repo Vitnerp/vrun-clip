@@ -91,6 +91,12 @@ fn process_image(
             (img, Some(bytes))
         }
         RawImage::Dib(bytes) => (dib_to_rgba(&bytes)?, None),
+        RawImage::Tiff(bytes) => {
+            let img = image::load_from_memory_with_format(&bytes, image::ImageFormat::Tiff)
+                .context("decode TIFF from clipboard")?
+                .to_rgba8();
+            (img, None)
+        }
     };
     let (w, h) = rgba.dimensions();
     let hash = hash(&[b"image", &w.to_le_bytes(), &h.to_le_bytes(), rgba.as_raw()]);
@@ -307,6 +313,7 @@ fn channel(v: u32, mask: u32, shift: u32) -> u8 {
 }
 
 /// Builds a bottom-up 32 bpp BI_RGB DIB (CF_DIB) from RGBA pixels.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn rgba_to_dib(img: &RgbaImage) -> Vec<u8> {
     let (w, h) = img.dimensions();
     let mut out = Vec::with_capacity(40 + (w * h * 4) as usize);

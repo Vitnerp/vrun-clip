@@ -1,13 +1,13 @@
 # vrun.clip
 
-Fast, searchable clipboard history for Windows. Press **Ctrl+Shift+V** anywhere, type a few letters, hit **Enter** and it is pasted.
+Fast, searchable clipboard history for Windows and macOS. Press **Ctrl+Shift+V** (macOS: **⌘⇧V**) anywhere, type a few letters, hit **Enter** and it is pasted.
 
 - Remembers text, rich text (HTML/RTF), images and screenshots (4K too), and files copied in Explorer
 - Instant full-text search: substring, case- and diacritics-insensitive (`zlutou` finds `žluťoučký`)
 - Never blocks other apps: the clipboard is held for milliseconds, heavy work happens in the background (the Snipping Tool problem some clipboard managers have)
 - Skips content that apps mark as private (password managers) plus a configurable ignore list
-- Lives in the tray, starts with Windows, 2.4 MB installer, no admin rights needed
-- Everything stays on your computer (`%LOCALAPPDATA%\com.vrun.clip`)
+- Lives in the tray / menu bar, starts at login, small installer, no admin rights needed
+- Everything stays on your computer (`%LOCALAPPDATA%\com.vrun.clip`, macOS: `~/Library/Application Support/com.vrun.clip`)
 
 ## Install
 
@@ -15,6 +15,17 @@ Download `vrun.clip_<version>_x64-setup.exe` from the [Releases](../../releases)
 
 > Windows SmartScreen may say *"Windows protected your PC"* because the installer is not code-signed yet.
 > Click **More info → Run anyway**.
+
+### macOS (11 Big Sur or newer, Apple Silicon and Intel)
+
+1. Download `vrun.clip_<version>_universal.dmg`, open it and drag **vrun.clip** into **Applications**.
+2. Start it. Because the app is not notarized by Apple yet, macOS blocks the first launch:
+   open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+3. vrun.clip appears in the menu bar (no Dock icon). Press **⌘⇧V** anywhere.
+4. The first time you paste, macOS asks to allow vrun.clip under **Privacy & Security → Accessibility**.
+   This is needed to send ⌘V to the app you were in. Without it, items are only copied.
+
+> Until the app is signed with an Apple Developer ID, macOS may ask for the Accessibility permission again after an update.
 
 ## Use
 
@@ -32,9 +43,11 @@ Download `vrun.clip_<version>_x64-setup.exe` from the [Releases](../../releases)
 | `Ctrl+,` | Settings |
 | `Esc` | Clear search, then close |
 
-Ctrl+Shift+V is "paste as plain text" in some apps (browsers, Slack, VS Code). vrun.clip takes it over globally; use **Shift+Enter** in the popup for plain text, or pick another shortcut in Settings.
+On macOS use ⌘ wherever the table says Ctrl.
 
-The tray icon menu has *Pause recording*, *Start with Windows*, *Settings* and *Quit*.
+Ctrl+Shift+V (⌘⇧V on macOS) is "paste as plain text" in some apps (browsers, Slack, VS Code). vrun.clip takes it over globally; use **Shift+Enter** in the popup for plain text, or pick another shortcut in Settings.
+
+The tray / menu bar icon has *Pause recording*, *Start with Windows* (*Start at login* on macOS), *Settings*, *Check for updates* and *Quit*.
 
 > Pasting into apps that run **as administrator** only works when vrun.clip also runs as administrator (a Windows security rule). The item is still copied, so you can press Ctrl+V yourself.
 

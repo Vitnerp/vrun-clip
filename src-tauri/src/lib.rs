@@ -357,7 +357,8 @@ fn start_capture(app: &AppHandle) {
 fn build_tray(app: &AppHandle, settings: &Settings) -> tauri::Result<TrayChecks> {
     let open = MenuItem::with_id(app, "open", "Open vrun.clip", true, None::<&str>)?;
     let pause = CheckMenuItem::with_id(app, "pause", "Pause recording", true, settings.paused, None::<&str>)?;
-    let autostart = CheckMenuItem::with_id(app, "autostart", "Start with Windows", true, settings.autostart, None::<&str>)?;
+    let autostart_label = if cfg!(windows) { "Start with Windows" } else { "Start at login" };
+    let autostart = CheckMenuItem::with_id(app, "autostart", autostart_label, true, settings.autostart, None::<&str>)?;
     let prefs = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let update = MenuItem::with_id(app, "update", "Check for updates", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit vrun.clip", true, None::<&str>)?;
@@ -374,8 +375,14 @@ fn build_tray(app: &AppHandle, settings: &Settings) -> tauri::Result<TrayChecks>
             &quit,
         ],
     )?;
+    // macOS menu bar icons are monochrome "template" images tinted by the system.
+    #[cfg(target_os = "macos")]
+    let (icon, template) = (tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?, true);
+    #[cfg(not(target_os = "macos"))]
+    let (icon, template) = (app.default_window_icon().cloned().expect("app icon"), false);
     TrayIconBuilder::with_id("main")
-        .icon(app.default_window_icon().cloned().expect("app icon"))
+        .icon(icon)
+        .icon_as_template(template)
         .tooltip(format!("vrun.clip — {}", settings.hotkey))
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -452,6 +459,9 @@ pub fn run() {
             });
         })
         .setup(|app| {
+            // Menu bar app: no Dock icon, no app switcher entry.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let handle = app.handle().clone();
             let data_dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;

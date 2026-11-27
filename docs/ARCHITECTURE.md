@@ -58,7 +58,7 @@ On the hotkey we remember the foreground window. Selecting an item writes all it
 
 `platform/` is the only OS-specific code. To add an OS, implement `start_watcher`, `write_clipboard`, `foreground_window`, `paste_into`, `message_box`:
 
-* **macOS**: poll `NSPasteboard.changeCount` (there is no change notification), paste with a `CGEvent` Cmd+V (needs the Accessibility permission).
+* **macOS** (implemented, `platform/macos.rs`): polls `NSPasteboard.changeCount` every 250 ms (there is no change notification), reads text/HTML/RTF/PNG/TIFF/file URLs, skips nspasteboard.org concealed/transient types, pastes with a `CGEvent` ⌘V (Accessibility permission, prompted on first paste). HTML is stored in the Windows CF_HTML layout on both OSes so items stay portable for sync. Runs as a menu bar app (`LSUIElement`), default shortcut ⌘⇧V.
 * **Linux**: Wayland `wlr-data-control` / `ext-data-control` (via `wl-clipboard-rs`), X11 XFixes selection events; paste via `xdotool`/`ydotool`-like input.
 * **Android/iOS**: no background clipboard access is allowed. Mobile would be a *sync client* (share sheet / manual paste) rather than a watcher.
 
