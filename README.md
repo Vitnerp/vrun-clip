@@ -72,8 +72,8 @@ One-time key setup (the maintainer does this; the private key never goes into th
 2. Back up `vrun-clip.key` and the password (password manager). **If they are lost, installed copies can never be updated again.**
 3. Upload them as GitHub Actions secrets:
    ```powershell
-   gh secret set TAURI_SIGNING_PRIVATE_KEY --repo Vitnerp/vrun-clip --body (Get-Content -Raw "$HOME\.tauri\vrun-clip.key")
-   gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo Vitnerp/vrun-clip
+   Get-Content -Raw "$HOME\.tauri\vrun-clip.key" | gh secret set TAURI_SIGNING_PRIVATE_KEY --repo Vitnerp/vrun-clip
+   gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo Vitnerp/vrun-clip   # prompts for the password
    ```
 4. Put the contents of `vrun-clip.key.pub` into `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
 
