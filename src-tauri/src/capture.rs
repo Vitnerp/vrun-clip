@@ -91,6 +91,12 @@ fn process_image(
             (img, Some(bytes))
         }
         RawImage::Dib(bytes) => (dib_to_rgba(&bytes)?, None),
+        RawImage::Tiff(bytes) => {
+            let img = image::load_from_memory_with_format(&bytes, image::ImageFormat::Tiff)
+                .context("decode TIFF from clipboard")?
+                .to_rgba8();
+            (img, None)
+        }
     };
     let (w, h) = rgba.dimensions();
     let hash = hash(&[b"image", &w.to_le_bytes(), &h.to_le_bytes(), rgba.as_raw()]);

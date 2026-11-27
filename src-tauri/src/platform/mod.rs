@@ -1,7 +1,7 @@
 //! OS specific clipboard access. Each platform exposes the same functions:
 //! `start_watcher`, `write_clipboard`, `foreground_window`, `paste_into`,
-//! `message_box`. Only Windows is implemented today; macOS (NSPasteboard
-//! polling + CGEvent) and Linux (wl-clipboard / X11) slot in here later.
+//! `message_box`. Implemented: Windows (Win32) and macOS (NSPasteboard
+//! polling + CGEvent). Linux (wl-clipboard / X11) slots in here later.
 
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 
@@ -17,7 +17,12 @@ mod windows;
 #[cfg(windows)]
 pub use windows::*;
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+mod macos;
+#[cfg(target_os = "macos")]
+pub use macos::*;
+
+#[cfg(not(any(windows, target_os = "macos")))]
 mod unsupported {
     use super::WatchConfig;
     use crate::model::{CapturedClip, ClipPayload};
@@ -37,5 +42,5 @@ mod unsupported {
         log::warn!("{title}: {text}");
     }
 }
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub use unsupported::*;

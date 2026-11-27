@@ -1,9 +1,10 @@
-# Builds the Windows installer and publishes a GitHub Release.
+# Builds the Windows installer and the macOS app and publishes a GitHub Release.
 #
 # How to release:
 #   1. Bump the version in src-tauri/tauri.conf.json (and package.json / Cargo.toml)
 #   2. git commit -am "v0.2.0" && git tag v0.2.0 && git push --follow-tags
-# The release appears under GitHub → Releases with vrun.clip_<version>_x64-setup.exe.
+# The release appears under GitHub → Releases with the Windows setup .exe,
+# the macOS .dmg (universal: Apple Silicon + Intel) and latest.json for the updater.
 
 name: Release
 
@@ -23,9 +24,11 @@ jobs:
         include:
           - platform: windows-latest
             args: ""
-          # Later, for cross-platform builds:
-          # - platform: macos-latest
-          #   args: "--target universal-apple-darwin"
+            rust_targets: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+            rust_targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+          # Later:
           # - platform: ubuntu-22.04
           #   args: ""
     runs-on: ${{ matrix.platform }}
@@ -40,6 +43,8 @@ jobs:
           cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -61,18 +66,23 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Only needed once auto-update is enabled (see README → Auto-update).
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS signing + notarization: not configured yet (needs an Apple
+          # Developer account, see docs/SIGNING.md). Until then the app is
+          # ad-hoc signed and users allow it once in Privacy & Security.
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "vrun.clip ${{ github.ref_name }}"
           releaseBody: |
-            ### Install
-            Download **vrun.clip_*_x64-setup.exe** below and run it. No administrator rights needed.
-            After install, press **Ctrl+Shift+V** anywhere.
+            ### Windows
+            Download **vrun.clip_*_x64-setup.exe** and run it. No administrator rights needed. Then press **Ctrl+Shift+V** anywhere.
+            If SmartScreen warns about an unknown publisher, click **More info → Run anyway**.
 
-            If Windows SmartScreen warns about an unknown publisher, click **More info → Run anyway**.
+            ### macOS (Apple Silicon and Intel, macOS 11+)
+            Download **vrun.clip_*_universal.dmg**, open it and drag **vrun.clip** to Applications. Then press **⌘⇧V** anywhere.
+            The app is not notarized yet: on first launch, open **System Settings → Privacy & Security** and click **Open Anyway**.
+            For auto-paste, allow vrun.clip under **Privacy & Security → Accessibility** when asked.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

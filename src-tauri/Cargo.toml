@@ -30,7 +30,7 @@ blake3 = "1.8.8"
 log = "0.4.35"
 rusqlite = { version = "0.43.0", features = ["bundled"] }
 uuid = { version = "1.29.3", features = ["v4"] }
-image = { version = "0.25.10", default-features = false, features = ["png"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "tiff"] }
 tauri-plugin-log = "2.10.2"
 
 
@@ -47,3 +47,10 @@ windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Syste
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-updater = "2.14.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10.1"
+core-graphics = "0.25.0"
+objc2 = "0.6.5"
+objc2-app-kit = { version = "0.3.2", features = ["std", "NSPasteboard", "NSPasteboardItem", "NSRunningApplication", "NSWorkspace"] }
+objc2-foundation = { version = "0.3.2", features = ["std", "NSString", "NSData", "NSArray", "NSURL"] }

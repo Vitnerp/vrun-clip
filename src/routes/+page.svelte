@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
-  import { api, formatBytes, timeAgo, type Clip, type Detail, type PopupShown, type SettingsView, type UpdateStatus } from "$lib/api";
+  import { api, formatBytes, isMac, mod, timeAgo, type Clip, type Detail, type PopupShown, type SettingsView, type UpdateStatus } from "$lib/api";
   import Icon from "$lib/Icon.svelte";
   import SettingsPanel from "$lib/SettingsPanel.svelte";
 
@@ -285,7 +285,7 @@
         spellcheck="false"
         autocomplete="off"
       />
-      <button class="icon" title="Settings (Ctrl+,)" onclick={() => (view = "settings")}><Icon name="gear" /></button>
+      <button class="icon" title="Settings ({mod},)" onclick={() => (view = "settings")}><Icon name="gear" /></button>
       <button class="icon" title="Close (Esc)" onclick={() => api.hide()}><Icon name="close" /></button>
     </header>
 
@@ -332,7 +332,7 @@
               </div>
             </div>
             <div class="actions">
-              <button class="icon small" class:on={item.pinned} title="Pin (Ctrl+P)" onmousedown={(e) => e.stopPropagation()} onclick={() => pin(i)}><Icon name="pin" size={14} /></button>
+              <button class="icon small" class:on={item.pinned} title="Pin ({mod}P)" onmousedown={(e) => e.stopPropagation()} onclick={() => pin(i)}><Icon name="pin" size={14} /></button>
               <button class="icon small" title="Delete (Del)" onmousedown={(e) => e.stopPropagation()} onclick={() => remove(i)}><Icon name="trash" size={14} /></button>
             </div>
           </li>
@@ -343,7 +343,7 @@
               No matches for “{query}”.
             {:else}
               <strong>Nothing here yet.</strong>
-              Copy some text or take a screenshot (Win+Shift+S),<br />then press <kbd>{hotkey}</kbd> anywhere.
+              Copy some text or take a screenshot ({isMac ? "⇧⌘⌃4" : "Win+Shift+S"}),<br />then press <kbd>{hotkey}</kbd> anywhere.
             {/if}
           </li>
         {/if}
@@ -376,7 +376,7 @@
       {:else}
         <span><kbd>↵</kbd> {canPaste ? "paste" : "copy"}</span>
         <span><kbd>⇧↵</kbd> plain text</span>
-        <span><kbd>Ctrl+P</kbd> pin</span>
+        <span><kbd>{mod}P</kbd> pin</span>
         <span><kbd>Del</kbd> delete</span>
         <span class="grow"></span>
         <span class="count">{total} items</span>
@@ -388,7 +388,7 @@
     <div class="welcome" role="dialog" aria-label="Welcome">
       <div class="card">
         <h2>vrun.clip is running</h2>
-        <p>It lives in the system tray and remembers everything you copy: text, images, screenshots and files.</p>
+        <p>It lives in the {isMac ? "menu bar" : "system tray"} and remembers everything you copy: text, images, screenshots and files.</p>
         <ol>
           <li>Copy something as usual.</li>
           <li>Press <kbd>{hotkey}</kbd> anywhere.</li>
