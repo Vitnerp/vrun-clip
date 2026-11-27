@@ -1,6 +1,6 @@
 [package]
 name = "vrun-clip"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fast, searchable clipboard history"
 authors = ["vrun"]
 edition = "2024"
