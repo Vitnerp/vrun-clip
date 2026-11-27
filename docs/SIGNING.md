@@ -1,6 +1,9 @@
-# Code signing plan (SignPath Foundation)
+# Code signing plan
 
-Status: **not started.** Releases are unsigned, so Windows SmartScreen shows "More info → Run anyway".
+- **Windows**: SignPath Foundation (free for open source), described below. Status: **not started**; SmartScreen shows "More info → Run anyway".
+- **macOS**: Apple Developer ID + notarization, see [macOS](#macos-apple-developer-id--notarization) at the end. Status: **not started**; the app is ad-hoc signed, so users click "Open Anyway" once.
+
+## Windows: SignPath Foundation
 
 We will use the free [SignPath Foundation](https://signpath.org/) program for open-source projects. The certificate is issued to *SignPath Foundation*, which is shown as the publisher. SignPath signs only artifacts that were built by GitHub Actions from this public repository.
 
@@ -54,3 +57,15 @@ Privacy: vrun.clip never sends clipboard content anywhere. Its only own network 
 
 - SmartScreen reputation builds up per certificate over time. The first signed releases may still show a (milder) warning until enough people have downloaded them.
 - Paid alternatives, if ever needed: a Certum "Open Source Developer" certificate (about €69/year, publisher = your name), or Azure Artifact Signing (about $10/month; individuals only in the USA and Canada, EU *organizations* are eligible).
+
+## macOS: Apple Developer ID + notarization
+
+SignPath does not cover macOS. Apple requires its own program:
+
+1. Join the **Apple Developer Program** (99 USD/year, individuals allowed, needs an Apple ID with 2FA).
+2. On a Mac, create a **Developer ID Application** certificate (Xcode → Settings → Accounts, or developer.apple.com), export it with its private key as `.p12` and a password.
+3. Create an **app-specific password** for your Apple ID (account.apple.com), and note your **Team ID**.
+4. Add GitHub secrets: `APPLE_CERTIFICATE` (base64 of the `.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (e.g. `Developer ID Application: Your Name (TEAMID)`), `APPLE_ID`, `APPLE_PASSWORD` (app-specific password), `APPLE_TEAM_ID`.
+5. In `.github/workflows/release.yml` pass those secrets as `env` to `tauri-action`, and remove `"signingIdentity": "-"` from `src-tauri/tauri.macos.conf.json`. Tauri then signs and notarizes automatically.
+
+Benefits: no "Open Anyway" step, and the Accessibility permission survives updates (it is tied to the signing identity; ad-hoc signatures change on every build).
