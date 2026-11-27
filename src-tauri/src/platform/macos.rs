@@ -303,6 +303,51 @@ pub fn message_box(title: &str, text: &str) {
 mod tests {
     use super::*;
 
+    /// Writes to the real pasteboard, so it is opt-in:
+    /// `cargo test -- --ignored clipboard_roundtrip` (CI runs it on macOS).
+    #[test]
+    #[ignore]
+    fn clipboard_roundtrip() {
+        let pb = || NSPasteboard::generalPasteboard();
+
+        // Text + HTML (stored as CF_HTML, written back as plain HTML).
+        let cf = html_to_cf_html(b"<b>bold</b>".to_vec());
+        write_clipboard(
+            &ClipPayload { text: Some("Příliš žluťoučký kůň".into()), html: Some(cf), ..Default::default() },
+            false,
+        )
+        .unwrap();
+        let types = type_names(&pb());
+        assert!(types.iter().any(|t| t == INTERNAL_TYPE), "own writes are marked: {types:?}");
+        assert_eq!(pb().stringForType(t_string()).unwrap().to_string(), "Příliš žluťoučký kůň");
+        assert_eq!(data(&pb(), t_html(), usize::MAX).unwrap(), b"<b>bold</b>");
+        assert!(read_clipboard(&pb(), usize::MAX).is_none(), "listener skips our own writes");
+
+        // Plain mode drops HTML.
+        write_clipboard(
+            &ClipPayload { text: Some("plain".into()), html: Some(b"<b>x</b>".to_vec()), ..Default::default() },
+            true,
+        )
+        .unwrap();
+        assert!(!type_names(&pb()).iter().any(|t| *t == t_html().to_string()));
+
+        // Files.
+        let files = vec!["/etc/hosts".to_string(), "/bin/ls".to_string()];
+        write_clipboard(&ClipPayload { files: Some(files.clone()), ..Default::default() }, false).unwrap();
+        assert_eq!(read_files(&pb()).unwrap(), files);
+
+        // Image: PNG + TIFF are both offered.
+        let img = image::RgbaImage::from_fn(64, 48, |x, y| image::Rgba([x as u8 * 4, y as u8 * 5, 90, 255]));
+        let path = std::env::temp_dir().join("vrun-clip-test.png");
+        std::fs::write(&path, crate::capture::encode_png(&img).unwrap()).unwrap();
+        write_clipboard(&ClipPayload { image_png_path: Some(path), ..Default::default() }, false).unwrap();
+        let png = data(&pb(), t_png(), usize::MAX).unwrap();
+        let back = image::load_from_memory(&png).unwrap().to_rgba8();
+        assert_eq!(back.get_pixel(10, 20), img.get_pixel(10, 20));
+        let tiff = data(&pb(), t_tiff(), usize::MAX).unwrap();
+        assert_eq!(image::load_from_memory(&tiff).unwrap().width(), 64);
+    }
+
     #[test]
     fn cf_html_roundtrip() {
         let html = b"<b>Hello</b> world".to_vec();

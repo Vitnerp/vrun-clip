@@ -30,3 +30,31 @@ jobs:
       - run: pnpm build
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path src-tauri/Cargo.toml
+
+  # Builds the real macOS app and checks it against the real pasteboard.
+  macos-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+      - run: pnpm install --frozen-lockfile
+      - name: Clipboard round-trip on the real pasteboard
+        run: cargo test --manifest-path src-tauri/Cargo.toml -- --ignored clipboard_roundtrip
+      - name: Build universal app and .dmg
+        run: pnpm tauri build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      - name: Smoke test the built app
+        run: bash scripts/macos-smoke-test.sh src-tauri/target/universal-apple-darwin/release/bundle/macos/vrun.clip.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vrun.clip-macos-dmg
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
