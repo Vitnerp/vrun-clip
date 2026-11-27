@@ -70,7 +70,7 @@ jobs:
           releaseBody: |
             ### Install
             Download **vrun.clip_*_x64-setup.exe** below and run it. No administrator rights needed.
-            After install, press **Ctrl+Alt+V** anywhere.
+            After install, press **Ctrl+Shift+V** anywhere.
 
             If Windows SmartScreen warns about an unknown publisher, click **More info → Run anyway**.
           releaseDraft: false

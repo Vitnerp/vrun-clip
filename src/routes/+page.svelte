@@ -14,7 +14,7 @@
   let view = $state<"list" | "settings">("list");
   let welcome = $state(false);
   let canPaste = $state(true);
-  let hotkey = $state("Ctrl+Alt+V");
+  let hotkey = $state("Ctrl+Shift+V");
   let paused = $state(false);
   let total = $state(0);
   let loaded = $state(false);

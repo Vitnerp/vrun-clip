@@ -1,6 +1,6 @@
 # vrun.clip
 
-Fast, searchable clipboard history for Windows. Press **Ctrl+Alt+V** anywhere, type a few letters, hit **Enter** and it is pasted.
+Fast, searchable clipboard history for Windows. Press **Ctrl+Shift+V** anywhere, type a few letters, hit **Enter** and it is pasted.
 
 - Remembers text, rich text (HTML/RTF), images and screenshots (4K too), and files copied in Explorer
 - Instant full-text search: substring, case- and diacritics-insensitive (`zlutou` finds `žluťoučký`)
@@ -20,7 +20,7 @@ Download `vrun.clip_<version>_x64-setup.exe` from the [Releases](../../releases)
 
 | Key | Action |
 | --- | --- |
-| `Ctrl+Alt+V` | Open / close the popup (change it in Settings) |
+| `Ctrl+Shift+V` | Open / close the popup (change it in Settings) |
 | type | Search |
 | `↑` `↓` `PgUp` `PgDn` | Move |
 | `Enter` / double-click | Paste into the app you were in |
@@ -31,6 +31,8 @@ Download `vrun.clip_<version>_x64-setup.exe` from the [Releases](../../releases)
 | `Del` | Delete item |
 | `Ctrl+,` | Settings |
 | `Esc` | Clear search, then close |
+
+Ctrl+Shift+V is "paste as plain text" in some apps (browsers, Slack, VS Code). vrun.clip takes it over globally; use **Shift+Enter** in the popup for plain text, or pick another shortcut in Settings.
 
 The tray icon menu has *Pause recording*, *Start with Windows*, *Settings* and *Quit*.
 

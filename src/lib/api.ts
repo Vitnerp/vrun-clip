@@ -98,7 +98,7 @@ export function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
-/** Turns a keydown event into a shortcut string like "Ctrl+Alt+V". */
+/** Turns a keydown event into a shortcut string like "Ctrl+Shift+V". */
 export function shortcutFromEvent(e: KeyboardEvent): string | null {
   const modifierCodes = ["Control", "Alt", "Shift", "Meta", "OS", "AltGraph"];
   if (modifierCodes.some((m) => e.key === m || e.code.startsWith(m))) return null;

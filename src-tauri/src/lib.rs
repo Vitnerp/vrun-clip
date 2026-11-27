@@ -270,7 +270,7 @@ async fn get_settings(app: AppHandle) -> CmdResult<SettingsView> {
 #[tauri::command]
 async fn save_settings(app: AppHandle, settings: Settings) -> CmdResult<SettingsView> {
     let current = app.state::<AppState>().settings.lock().unwrap().clone();
-    let new = Settings { welcome_done: current.welcome_done, ..settings }.sanitized();
+    let new = Settings { welcome_done: current.welcome_done, version: current.version, ..settings }.sanitized();
     apply_settings(&app, new);
     settings_view(&app)
 }

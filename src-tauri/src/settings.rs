@@ -3,10 +3,18 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// Bump when a migration in `Settings::migrate` is added.
+const SETTINGS_VERSION: u32 = 2;
+const OLD_DEFAULT_HOTKEY: &str = "Ctrl+Alt+V";
+const DEFAULT_HOTKEY: &str = "Ctrl+Shift+V";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
-    /// Global shortcut that opens the popup, e.g. "Ctrl+Alt+V".
+    /// Schema version of this file. Missing in files written by 0.1.0/0.1.1.
+    #[serde(default)]
+    pub version: u32,
+    /// Global shortcut that opens the popup, e.g. "Ctrl+Shift+V".
     pub hotkey: String,
     /// Maximum number of unpinned items kept in history.
     pub max_items: u32,
@@ -27,7 +35,8 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            hotkey: "Ctrl+Alt+V".into(),
+            version: SETTINGS_VERSION,
+            hotkey: DEFAULT_HOTKEY.into(),
             max_items: 5000,
             max_image_mb: 2048,
             max_item_mb: 64,
@@ -53,9 +62,29 @@ impl Settings {
     pub fn load(dir: &Path) -> (Settings, bool) {
         let path = Self::file(dir);
         match std::fs::read_to_string(&path) {
-            Ok(s) => (serde_json::from_str(&s).unwrap_or_default(), true),
+            Ok(s) => {
+                let mut settings: Settings = serde_json::from_str(&s).unwrap_or_default();
+                if settings.migrate() {
+                    let _ = settings.save(dir);
+                }
+                (settings, true)
+            }
             Err(_) => (Settings::default(), false),
         }
+    }
+
+    /// Upgrades settings written by older versions. Returns true if changed.
+    fn migrate(&mut self) -> bool {
+        if self.version >= SETTINGS_VERSION {
+            return false;
+        }
+        // v2: default shortcut changed from Ctrl+Alt+V to Ctrl+Shift+V.
+        // Only users still on the old default are moved.
+        if self.version < 2 && self.hotkey.eq_ignore_ascii_case(OLD_DEFAULT_HOTKEY) {
+            self.hotkey = DEFAULT_HOTKEY.into();
+        }
+        self.version = SETTINGS_VERSION;
+        true
     }
 
     pub fn save(&self, dir: &Path) -> anyhow::Result<()> {
@@ -85,6 +114,55 @@ impl Settings {
         match app {
             Some(app) => self.ignored_apps.iter().any(|a| a.eq_ignore_ascii_case(app)),
             None => false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dir() -> PathBuf {
+        let d = std::env::temp_dir().join(format!("vrun-clip-settings-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    #[test]
+    fn old_default_hotkey_is_migrated_and_saved() {
+        let d = dir();
+        std::fs::write(Settings::file(&d), r#"{"hotkey":"Ctrl+Alt+V","maxItems":123}"#).unwrap();
+        let (s, existed) = Settings::load(&d);
+        assert!(existed);
+        assert_eq!(s.hotkey, "Ctrl+Shift+V");
+        assert_eq!(s.max_items, 123, "other values kept");
+        assert_eq!(s.version, SETTINGS_VERSION);
+        let saved = std::fs::read_to_string(Settings::file(&d)).unwrap();
+        assert!(saved.contains("Ctrl+Shift+V"));
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn custom_hotkey_is_kept() {
+        let d = dir();
+        std::fs::write(Settings::file(&d), r#"{"hotkey":"Ctrl+`"}"#).unwrap();
+        assert_eq!(Settings::load(&d).0.hotkey, "Ctrl+`");
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn new_install_defaults() {
+        let d = dir();
+        let (s, existed) = Settings::load(&d);
+        assert!(!existed);
+        assert_eq!(s.hotkey, "Ctrl+Shift+V");
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn hotkeys_parse() {
+        for k in ["Ctrl+Shift+V", "Ctrl+Alt+V", "Ctrl+Backquote"] {
+            assert!(k.parse::<tauri_plugin_global_shortcut::Shortcut>().is_ok(), "{k}");
         }
     }
 }
