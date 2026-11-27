@@ -313,6 +313,7 @@ fn channel(v: u32, mask: u32, shift: u32) -> u8 {
 }
 
 /// Builds a bottom-up 32 bpp BI_RGB DIB (CF_DIB) from RGBA pixels.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn rgba_to_dib(img: &RgbaImage) -> Vec<u8> {
     let (w, h) = img.dimensions();
     let mut out = Vec::with_capacity(40 + (w * h * 4) as usize);

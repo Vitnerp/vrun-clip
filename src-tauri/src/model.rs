@@ -35,6 +35,7 @@ pub enum RawImage {
     /// Already PNG encoded (e.g. the registered "PNG" clipboard format).
     Png(Vec<u8>),
     /// Windows device independent bitmap (BITMAPINFOHEADER/V5 + pixels).
+    #[cfg_attr(not(windows), allow(dead_code))]
     Dib(Vec<u8>),
     /// TIFF, the classic macOS pasteboard image format.
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]

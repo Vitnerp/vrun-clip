@@ -191,19 +191,17 @@ pub fn write_clipboard(payload: &ClipPayload, plain: bool) -> Result<()> {
     autoreleasepool(|_| {
         let pb = NSPasteboard::generalPasteboard();
         pb.clearContents();
-        if !plain {
-            if let Some(files) = &payload.files {
-                let items: Vec<Retained<ProtocolObject<dyn NSPasteboardWriting>>> = files
-                    .iter()
-                    .filter_map(|f| {
-                        let url = NSURL::fileURLWithPath(&ns(f)).absoluteString()?;
-                        let item = NSPasteboardItem::new();
-                        item.setString_forType(&url, t_file_url());
-                        Some(ProtocolObject::from_retained(item))
-                    })
-                    .collect();
-                pb.writeObjects(&NSArray::from_retained_slice(&items));
-            }
+        if !plain && let Some(files) = &payload.files {
+            let items: Vec<Retained<ProtocolObject<dyn NSPasteboardWriting>>> = files
+                .iter()
+                .filter_map(|f| {
+                    let url = NSURL::fileURLWithPath(&ns(f)).absoluteString()?;
+                    let item = NSPasteboardItem::new();
+                    item.setString_forType(&url, t_file_url());
+                    Some(ProtocolObject::from_retained(item))
+                })
+                .collect();
+            pb.writeObjects(&NSArray::from_retained_slice(&items));
         }
         if let Some(text) = &payload.text {
             pb.setString_forType(&ns(text), t_string());
